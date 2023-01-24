@@ -2,7 +2,7 @@
 
 Note: This is a student project 
 
-# What is this project?
+# What is this project about?
 The final ISP project as a part of the course "Workspace and Workflow Management in Biology" prsents the skills I obtained during the course. Here you can find row and processed data files from all classes.
 
 ### Notes:
