@@ -1,0 +1,33 @@
+#Launching FastQC (4 is number of threads; q - quite mode)
+
+fastqc --outdir fastqc_reports/ -t 4 raw_reads/AI-69_S60_R1_001.fastq.gz  raw_reads/AI-69_S60_R2_001.fastq.gz  -q
+
+#Launching Trimmommatic (PE - pair-end mode; phread33 is basic setup; LEADING:15; TRAILING:15; SLIDINGWINDOW:10:20; MINLEN:20)
+
+trimmomatic PE -phred33 -threads 8 data/raw_reads/AI-69_S60_R1_001.fastq.gz data/raw_reads/AI-69_S60_R2_001.fastq.gz
+data/trimmed_reads/AI_69_S60_R1_paired.fastq.gz data/trimmed_reads/AI_69_S60_R1_unpaired.fastq.gz data/trimmed_reads/AI_69_S60_R2_paired.fastq.gz
+data/trimmed_reads/AI_69_S60_R2_unpaired.fastq.gz LEADING:15 TRAILING:15 SLIDINGWINDOW:10:20 MINLEN:20
+
+#Indexing reference sequence
+
+bwa index data/reference/T5_sequence.fasta
+
+#Performing local alignment of trimmed reads on the reference sequence
+#Samtools allow to convert file with .sam format to binnary file .bam
+
+bwa mem -t 4 data/reference/T5_sequence.fasta data/trimmed_reads/AI_69_S60_R1_paired.fastq.gz
+data/trimmed_reads/AI_69_S60_R2_paired.fastq.gz | samtools view -Sb > T5_AI_69_S60_aligned.bam
+
+#Sorting the mapped file (-@ means threads)
+
+samtools sort -@ 4 mapped/T5_AI_69_S60_aligned.bam -o mapped_sorted/T5_AI_69_S60_aligned_sorted.bam
+
+#Indexing the sorted mapped file
+
+samtools index -@ 8 mapped_sorted/T5_AI_69_S60_aligned_sorted.bam
+
+#Variant calling
+
+bcftools mpileup -Ou -f data/reference/T5_sequence.fasta mapped_sorted/T5_AI_69_S60_aligned_sorted.bam
+ | bcftools call -Ou -mv --ploidy 1 |
+ bcftools filter -s LowQual -e '%QUAL<20 || DP>100' > calling/T5_AI_69_S60_variants.vcf
